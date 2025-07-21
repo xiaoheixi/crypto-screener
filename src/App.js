@@ -16,44 +16,21 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch top 100 coins market data
-      const marketResponse = await fetch(
+      // Fetch top 100 coins market data (without individual category calls)
+      const response = await fetch(
         `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d%2C1y`
       );
 
-      if (!marketResponse.ok) {
-        throw new Error(`HTTP error! status: ${marketResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const marketData = await marketResponse.json();
-
-      // Fetch category for each coin individually (this can be slow and hit rate limits)
-      const cryptosWithCategories = await Promise.all(
-        marketData.map(async (crypto) => {
-          try {
-            const detailResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${crypto.id}`);
-            if (!detailResponse.ok) {
-              console.warn(`Failed to fetch details for ${crypto.id}: ${detailResponse.status}`);
-              return { ...crypto, category: 'N/A' }; // Return with N/A category on error
-            }
-            const detailData = await detailResponse.json();
-            // Assign the first category found, or 'N/A' if none
-            const category = detailData.categories && detailData.categories.length > 0
-              ? detailData.categories[0]
-              : 'N/A';
-            return { ...crypto, category };
-          } catch (detailErr) {
-            console.error(`Error fetching details for ${crypto.id}:`, detailErr);
-            return { ...crypto, category: 'N/A' }; // Return with N/A category on error
-          }
-        })
-      );
-
-      setCryptos(cryptosWithCategories);
+      const data = await response.json();
+      setCryptos(data);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Failed to fetch cryptocurrency data:", err);
-      setError("Failed to load data. Please try again later. (API rate limit might be hit)");
+      setError("Failed to load data. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -105,12 +82,7 @@ const App = () => {
     const valueA = a[sortColumn] || 0;
     const valueB = b[sortColumn] || 0;
 
-    // Special handling for category string sorting
-    if (sortColumn === 'category') {
-      const categoryA = a.category || '';
-      const categoryB = b.category || '';
-      return sortOrder === 'asc' ? categoryA.localeCompare(categoryB) : categoryB.localeCompare(categoryA);
-    }
+    // Removed special handling for category string sorting
 
     if (sortOrder === 'asc') {
       return valueA - valueB;
@@ -134,27 +106,21 @@ const App = () => {
       return;
     }
 
-    // Define CSV headers including the new Category column
+    // Define CSV headers (Category column removed)
     const headers = [
-      'Rank', 'Coin Name', 'Symbol', 'Category', 'Price', 'Market Cap', 'Volume (24h)',
+      'Rank', 'Coin Name', 'Symbol', 'Price', 'Market Cap', 'Volume (24h)',
       '24h % Change', '7d % Change', '30d % Change', '1y % Change'
     ];
 
-    // Map crypto data to CSV rows
+    // Map crypto data to CSV rows (Category data removed)
     const csvRows = sortedCryptos.map(crypto => {
       // Helper to get raw numeric value for export
       const getNumericValue = (value) => (value === null || value === undefined ? '' : value);
-
-      // Apply the label change for export as well
-      const exportedCategory = crypto.category === 'Smart Contract Platform'
-        ? 'Major > 80% allocation permitted'
-        : (crypto.category || 'N/A');
 
       return [
         crypto.market_cap_rank,
         `"${crypto.name.replace(/"/g, '""')}"`,
         crypto.symbol.toUpperCase(),
-        `"${exportedCategory.replace(/"/g, '""')}"`, // Include category, handle quotes
         getNumericValue(crypto.current_price),
         getNumericValue(crypto.market_cap),
         getNumericValue(crypto.total_volume),
@@ -269,14 +235,6 @@ const App = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Coin
                   </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => handleSort('category')}
-                  >
-                    <div className="flex items-center justify-between">
-                      Category {renderSortIcon('category')}
-                    </div>
-                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Price
                   </th>
@@ -341,12 +299,6 @@ const App = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
-                      {/* Apply the label change for display */}
-                      {crypto.category === 'Smart Contract Platform'
-                        ? 'Major > 80% allocation permitted'
-                        : (crypto.category || 'N/A')}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
                       {formatNumber(crypto.current_price)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
@@ -376,8 +328,6 @@ const App = () => {
 
         <p className="text-center text-gray-500 text-xs mt-8">
           Data provided by CoinGecko. Prices may be delayed.
-          <br />
-          Note: Fetching categories requires additional API calls per coin, which may increase loading time and could be subject to API rate limits.
         </p>
       </div>
     </div>
