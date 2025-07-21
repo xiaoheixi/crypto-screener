@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCcw, Loader2, TrendingUp, TrendingDown, ChevronUp, ChevronDown, Download } from 'lucide-react'; // Added Download icon
+import { RefreshCcw, Loader2, TrendingUp, TrendingDown, ChevronUp, ChevronDown, Download } from 'lucide-react';
 
 // Main App component
 const App = () => {
@@ -16,20 +16,44 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
+      // Fetch top 100 coins market data
+      const marketResponse = await fetch(
         `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d%2C1y`
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!marketResponse.ok) {
+        throw new Error(`HTTP error! status: ${marketResponse.status}`);
       }
 
-      const data = await response.json();
-      setCryptos(data);
+      const marketData = await marketResponse.json();
+
+      // Fetch category for each coin individually (this can be slow and hit rate limits)
+      const cryptosWithCategories = await Promise.all(
+        marketData.map(async (crypto) => {
+          try {
+            const detailResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${crypto.id}`);
+            if (!detailResponse.ok) {
+              console.warn(`Failed to fetch details for ${crypto.id}: ${detailResponse.status}`);
+              return { ...crypto, category: 'N/A' }; // Return with N/A category on error
+            }
+            const detailData = await detailResponse.json();
+            // Assign the first category found, or 'N/A' if none
+            const category = detailData.categories && detailData.categories.length > 0
+              ? detailData.categories[0]
+              : 'N/A';
+            return { ...crypto, category };
+          } catch (detailErr) {
+            console.error(`Error fetching details for ${crypto.id}:`, detailErr);
+            return { ...crypto, category: 'N/A' }; // Return with N/A category on error
+          }
+        })
+      );
+
+      setCryptos(cryptosWithCategories);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Failed to fetch cryptocurrency data:", err);
-      setError("Failed to load data. Please try again later.");
+      setError("Failed to load data. Please try again later. (API rate limit might be hit)");
     } finally {
       setLoading(false);
     }
@@ -81,6 +105,13 @@ const App = () => {
     const valueA = a[sortColumn] || 0;
     const valueB = b[sortColumn] || 0;
 
+    // Special handling for category string sorting
+    if (sortColumn === 'category') {
+      const categoryA = a.category || '';
+      const categoryB = b.category || '';
+      return sortOrder === 'asc' ? categoryA.localeCompare(categoryB) : categoryB.localeCompare(categoryA);
+    }
+
     if (sortOrder === 'asc') {
       return valueA - valueB;
     } else {
@@ -99,14 +130,13 @@ const App = () => {
   // Function to export data to CSV
   const exportToCSV = () => {
     if (sortedCryptos.length === 0) {
-      // In a real app, you might show a custom modal/toast here instead of console.log
       console.log("No data to export.");
       return;
     }
 
-    // Define CSV headers
+    // Define CSV headers including the new Category column
     const headers = [
-      'Rank', 'Coin Name', 'Symbol', 'Price', 'Market Cap', 'Volume (24h)',
+      'Rank', 'Coin Name', 'Symbol', 'Category', 'Price', 'Market Cap', 'Volume (24h)',
       '24h % Change', '7d % Change', '30d % Change', '1y % Change'
     ];
 
@@ -117,8 +147,9 @@ const App = () => {
 
       return [
         crypto.market_cap_rank,
-        `"${crypto.name.replace(/"/g, '""')}"`, // Handle commas/quotes in names
+        `"${crypto.name.replace(/"/g, '""')}"`,
         crypto.symbol.toUpperCase(),
+        `"${(crypto.category || 'N/A').replace(/"/g, '""')}"`, // Include category, handle quotes
         getNumericValue(crypto.current_price),
         getNumericValue(crypto.market_cap),
         getNumericValue(crypto.total_volume),
@@ -143,10 +174,10 @@ const App = () => {
     const link = document.createElement('a');
     link.setAttribute('href', url);
     link.setAttribute('download', `crypto_performance_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link); // Required for Firefox
-    link.click(); // Trigger the download
-    document.body.removeChild(link); // Clean up the DOM
-    URL.revokeObjectURL(url); // Clean up the URL object
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
 
@@ -175,7 +206,7 @@ const App = () => {
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4"> {/* Changed to flex-wrap for better responsiveness */}
+          <div className="flex flex-wrap items-center gap-4">
             {lastUpdated && (
               <span className="text-sm text-gray-400">Last updated: {lastUpdated}</span>
             )}
@@ -199,7 +230,7 @@ const App = () => {
             <button
               onClick={exportToCSV}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500"
-              disabled={loading || cryptos.length === 0} // Disable if loading or no data
+              disabled={loading || cryptos.length === 0}
             >
               <Download size={20} />
               Export to CSV
@@ -232,6 +263,14 @@ const App = () => {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Coin
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                    onClick={() => handleSort('category')} // Make category sortable
+                  >
+                    <div className="flex items-center justify-between">
+                      Category {renderSortIcon('category')}
+                    </div>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                     Price
@@ -297,6 +336,9 @@ const App = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                      {crypto.category || 'N/A'} {/* Display the category */}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
                       {formatNumber(crypto.current_price)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
@@ -326,6 +368,8 @@ const App = () => {
 
         <p className="text-center text-gray-500 text-xs mt-8">
           Data provided by CoinGecko. Prices may be delayed.
+          <br />
+          Note: Fetching categories requires additional API calls per coin, which may increase loading time and could be subject to API rate limits.
         </p>
       </div>
     </div>
