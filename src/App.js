@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
-import { RefreshCcw, Loader2, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCcw, Loader2, TrendingUp, TrendingDown, ChevronUp, ChevronDown, Download } from 'lucide-react'; // Added Download icon
 
 // Main App component
 const App = () => {
@@ -33,14 +33,14 @@ const App = () => {
     } finally {
       setLoading(false);
     }
-  }, [currency]); // fetchCryptoData now depends on 'currency'
+  }, [currency]);
 
   // useEffect hook to fetch data when the component mounts or currency changes
   useEffect(() => {
     fetchCryptoData();
-  }, [fetchCryptoData]); // Now depends on fetchCryptoData (which is memoized by useCallback)
+  }, [fetchCryptoData]);
 
-  // Function to format market cap and volume numbers
+  // Function to format market cap and volume numbers for display
   const formatNumber = (num) => {
     if (num === null || num === undefined) return 'N/A';
     return new Intl.NumberFormat('en-US', {
@@ -51,7 +51,7 @@ const App = () => {
     }).format(num);
   };
 
-  // Function to format percentage values
+  // Function to format percentage values for display
   const formatPercentage = (percentage) => {
     if (percentage === null || percentage === undefined) return 'N/A';
     const colorClass = percentage >= 0 ? 'text-green-500' : 'text-red-500';
@@ -96,6 +96,60 @@ const App = () => {
     return null;
   };
 
+  // Function to export data to CSV
+  const exportToCSV = () => {
+    if (sortedCryptos.length === 0) {
+      // In a real app, you might show a custom modal/toast here instead of console.log
+      console.log("No data to export.");
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Rank', 'Coin Name', 'Symbol', 'Price', 'Market Cap', 'Volume (24h)',
+      '24h % Change', '7d % Change', '30d % Change', '1y % Change'
+    ];
+
+    // Map crypto data to CSV rows
+    const csvRows = sortedCryptos.map(crypto => {
+      // Helper to get raw numeric value for export
+      const getNumericValue = (value) => (value === null || value === undefined ? '' : value);
+
+      return [
+        crypto.market_cap_rank,
+        `"${crypto.name.replace(/"/g, '""')}"`, // Handle commas/quotes in names
+        crypto.symbol.toUpperCase(),
+        getNumericValue(crypto.current_price),
+        getNumericValue(crypto.market_cap),
+        getNumericValue(crypto.total_volume),
+        getNumericValue(crypto.price_change_percentage_24h_in_currency),
+        getNumericValue(crypto.price_change_percentage_7d_in_currency),
+        getNumericValue(crypto.price_change_percentage_30d_in_currency),
+        getNumericValue(crypto.price_change_percentage_1y_in_currency)
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...csvRows
+    ].join('\n');
+
+    // Create a Blob and URL for download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link element and trigger download
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `crypto_performance_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link); // Required for Firefox
+    link.click(); // Trigger the download
+    document.body.removeChild(link); // Clean up the DOM
+    URL.revokeObjectURL(url); // Clean up the URL object
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 font-inter">
       <div className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
@@ -121,7 +175,7 @@ const App = () => {
             </select>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4"> {/* Changed to flex-wrap for better responsiveness */}
             {lastUpdated && (
               <span className="text-sm text-gray-400">Last updated: {lastUpdated}</span>
             )}
@@ -141,6 +195,14 @@ const App = () => {
                   Refresh Data
                 </>
               )}
+            </button>
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={loading || cryptos.length === 0} // Disable if loading or no data
+            >
+              <Download size={20} />
+              Export to CSV
             </button>
           </div>
         </div>
