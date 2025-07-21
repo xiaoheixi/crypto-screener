@@ -1,46 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCcw, Loader2, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react'; // Added ChevronUp and ChevronDown for sorting icons
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import { RefreshCcw, Loader2, TrendingUp, TrendingDown, ChevronUp, ChevronDown } from 'lucide-react';
 
 // Main App component
 const App = () => {
-  const [cryptos, setCryptos] = useState([]); // State to store cryptocurrency data
-  const [loading, setLoading] = useState(true); // State for loading indicator
-  const [error, setError] = useState(null); // State for error messages
-  const [currency, setCurrency] = useState('usd'); // State for selected currency
-  const [lastUpdated, setLastUpdated] = useState(null); // State for last updated timestamp
-  const [sortColumn, setSortColumn] = useState(null); // State for current sort column
-  const [sortOrder, setSortOrder] = useState('desc'); // State for sort order ('asc' or 'desc')
+  const [cryptos, setCryptos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currency, setCurrency] = useState('usd');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc');
 
-  // Function to fetch cryptocurrency data from CoinGecko API
-  const fetchCryptoData = async () => {
-    setLoading(true); // Set loading to true before fetching
-    setError(null); // Clear any previous errors
+  // Function to fetch cryptocurrency data from CoinGecko API, wrapped in useCallback
+  const fetchCryptoData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      // CoinGecko API endpoint for top 100 coins with performance metrics
       const response = await fetch(
         `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d%2C1y`
       );
 
       if (!response.ok) {
-        // If response is not OK (e.g., 404, 500), throw an error
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json(); // Parse the JSON response
-      setCryptos(data); // Update the cryptos state with fetched data
-      setLastUpdated(new Date().toLocaleTimeString()); // Set last updated time
+      const data = await response.json();
+      setCryptos(data);
+      setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
-      console.error("Failed to fetch cryptocurrency data:", err); // Log the error
-      setError("Failed to load data. Please try again later."); // Set user-friendly error message
+      console.error("Failed to fetch cryptocurrency data:", err);
+      setError("Failed to load data. Please try again later.");
     } finally {
-      setLoading(false); // Set loading to false after fetching (whether success or error)
+      setLoading(false);
     }
-  };
+  }, [currency]); // fetchCryptoData now depends on 'currency'
 
   // useEffect hook to fetch data when the component mounts or currency changes
   useEffect(() => {
     fetchCryptoData();
-  }, [currency]); // Re-fetch data if currency changes
+  }, [fetchCryptoData]); // Now depends on fetchCryptoData (which is memoized by useCallback)
 
   // Function to format market cap and volume numbers
   const formatNumber = (num) => {
@@ -48,7 +46,7 @@ const App = () => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency.toUpperCase(),
-      notation: 'compact', // Use compact notation for large numbers (e.g., $1.2M)
+      notation: 'compact',
       maximumFractionDigits: 2,
     }).format(num);
   };
@@ -69,20 +67,18 @@ const App = () => {
   // Function to handle sorting when a column header is clicked
   const handleSort = (column) => {
     if (sortColumn === column) {
-      // If the same column is clicked, toggle the sort order
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      // If a new column is clicked, set it as the sort column and default to descending order
       setSortColumn(column);
-      setSortOrder('desc'); // Default to descending for performance metrics
+      setSortOrder('desc');
     }
   };
 
   // Sort the cryptocurrencies based on the current sortColumn and sortOrder
   const sortedCryptos = [...cryptos].sort((a, b) => {
-    if (!sortColumn) return 0; // No sorting if no column is selected
+    if (!sortColumn) return 0;
 
-    const valueA = a[sortColumn] || 0; // Treat null/undefined as 0 for sorting
+    const valueA = a[sortColumn] || 0;
     const valueB = b[sortColumn] || 0;
 
     if (sortOrder === 'asc') {
@@ -161,7 +157,7 @@ const App = () => {
           <div className="bg-red-900 border border-red-700 text-red-300 px-4 py-3 rounded-md text-center">
             <p>{error}</p>
           </div>
-        )}
+          )}
 
         {/* Cryptocurrency Table */}
         {!loading && !error && (
@@ -219,7 +215,7 @@ const App = () => {
                 </tr>
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {sortedCryptos.map((crypto) => ( // Use sortedCryptos here
+                {sortedCryptos.map((crypto) => (
                   <tr key={crypto.id} className="hover:bg-gray-700 transition-colors duration-200">
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
                       {crypto.market_cap_rank}
