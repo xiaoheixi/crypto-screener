@@ -145,11 +145,16 @@ const App = () => {
       // Helper to get raw numeric value for export
       const getNumericValue = (value) => (value === null || value === undefined ? '' : value);
 
+      // Apply the label change for export as well
+      const exportedCategory = crypto.category === 'Smart Contract Platform'
+        ? 'Major > 80% allocation permitted'
+        : (crypto.category || 'N/A');
+
       return [
         crypto.market_cap_rank,
         `"${crypto.name.replace(/"/g, '""')}"`,
         crypto.symbol.toUpperCase(),
-        `"${(crypto.category || 'N/A').replace(/"/g, '""')}"`, // Include category, handle quotes
+        `"${exportedCategory.replace(/"/g, '""')}"`, // Include category, handle quotes
         getNumericValue(crypto.current_price),
         getNumericValue(crypto.market_cap),
         getNumericValue(crypto.total_volume),
@@ -266,7 +271,7 @@ const App = () => {
                   </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => handleSort('category')} // Make category sortable
+                    onClick={() => handleSort('category')}
                   >
                     <div className="flex items-center justify-between">
                       Category {renderSortIcon('category')}
@@ -336,7 +341,10 @@ const App = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
-                      {crypto.category || 'N/A'} {/* Display the category */}
+                      {/* Apply the label change for display */}
+                      {crypto.category === 'Smart Contract Platform'
+                        ? 'Major > 80% allocation permitted'
+                        : (crypto.category || 'N/A')}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
                       {formatNumber(crypto.current_price)}
