@@ -207,7 +207,7 @@ const App = () => {
                 <>
                   <RefreshCcw size={20} />
                   Refresh Data
-                </G>
+                </>
               )}
             </button>
             <button
