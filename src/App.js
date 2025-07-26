@@ -99,9 +99,9 @@ const App = () => {
     }
   });
 
-  // Filter for Majors (ranks 1-10) and Altcoins (ranks 11-200) from the sorted list
-  const majors = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 1 && crypto.market_cap_rank <= 10);
-  const altcoins = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 11 && crypto.market_cap_rank <= 200);
+  // Filter for Majors (ranks 1-7) and Altcoins (ranks 8-200) from the sorted list
+  const majors = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 1 && crypto.market_cap_rank <= 7);
+  const altcoins = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 8 && crypto.market_cap_rank <= 200);
 
 
   // Helper function to render sort icons
@@ -207,7 +207,7 @@ const App = () => {
                 <>
                   <RefreshCcw size={20} />
                   Refresh Data
-                </>
+                </G>
               )}
             </button>
             <button
@@ -235,10 +235,10 @@ const App = () => {
           </div>
           )}
 
-        {/* Majors Table (Ranks 1-10) */}
+        {/* Majors Table (Ranks 1-7) */}
         {!loading && !error && (
           <>
-            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Majors (Ranks 1-10)</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Majors (Ranks 1-7)</h2>
             <div className="overflow-x-auto rounded-lg border border-gray-700 mb-8">
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-700 sticky top-0">
@@ -330,10 +330,10 @@ const App = () => {
           </>
         )}
 
-        {/* Altcoins Table (Ranks 11-200) */}
+        {/* Altcoins Table (Ranks 8-200) */}
         {!loading && !error && (
           <>
-            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Altcoins (Ranks 11-200)</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Altcoins (Ranks 8-200)</h2>
             <div className="overflow-x-auto rounded-lg border border-gray-700">
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-700 sticky top-0">
