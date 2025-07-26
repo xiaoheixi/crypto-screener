@@ -16,17 +16,27 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch top 100 coins market data (without individual category calls)
-      const response = await fetch(
+      // Fetch top 100 cryptocurrencies (page 1)
+      const response1 = await fetch(
         `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d%2C1y`
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Fetch next 100 cryptocurrencies (page 2)
+      const response2 = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=100&page=2&sparkline=false&price_change_percentage=24h%2C7d%2C30d%2C1y`
+      );
+
+      if (!response1.ok || !response2.ok) {
+        throw new Error(`HTTP error! status: ${response1.status || response2.status}`);
       }
 
-      const data = await response.json();
-      setCryptos(data);
+      const data1 = await response1.json();
+      const data2 = await response2.json();
+
+      // Combine the data from both pages
+      const combinedData = [...data1, ...data2];
+
+      setCryptos(combinedData);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Failed to fetch cryptocurrency data:", err);
@@ -82,14 +92,17 @@ const App = () => {
     const valueA = a[sortColumn] || 0;
     const valueB = b[sortColumn] || 0;
 
-    // Removed special handling for category string sorting
-
     if (sortOrder === 'asc') {
       return valueA - valueB;
     } else {
       return valueB - valueA;
     }
   });
+
+  // Filter for Majors (ranks 1-10) and Altcoins (ranks 11-200) from the sorted list
+  const majors = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 1 && crypto.market_cap_rank <= 10);
+  const altcoins = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 11 && crypto.market_cap_rank <= 200);
+
 
   // Helper function to render sort icons
   const renderSortIcon = (column) => {
@@ -106,13 +119,13 @@ const App = () => {
       return;
     }
 
-    // Define CSV headers (Category column removed)
+    // Define CSV headers
     const headers = [
       'Rank', 'Coin Name', 'Symbol', 'Price', 'Market Cap', 'Volume (24h)',
       '24h % Change', '7d % Change', '30d % Change', '1y % Change'
     ];
 
-    // Map crypto data to CSV rows (Category data removed)
+    // Map crypto data to CSV rows (using the combined sortedCryptos)
     const csvRows = sortedCryptos.map(crypto => {
       // Helper to get raw numeric value for export
       const getNumericValue = (value) => (value === null || value === undefined ? '' : value);
@@ -156,7 +169,7 @@ const App = () => {
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 font-inter">
       <div className="max-w-7xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
         <h1 className="text-3xl md:text-4xl font-bold text-center text-blue-400 mb-6">
-          Crypto Performance Screener
+          Crypto Performance Screener (Ranks 1-200)
         </h1>
 
         {/* Controls and Status */}
@@ -223,107 +236,216 @@ const App = () => {
           </div>
           )}
 
-        {/* Cryptocurrency Table */}
+        {/* Majors Table (Ranks 1-10) */}
         {!loading && !error && (
-          <div className="overflow-x-auto rounded-lg border border-gray-700">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead className="bg-gray-700 sticky top-0">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tl-lg">
-                    #
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Coin
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Market Cap
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Volume (24h)
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => handleSort('price_change_percentage_24h_in_currency')}
-                  >
-                    <div className="flex items-center justify-between">
-                      24h % {renderSortIcon('price_change_percentage_24h_in_currency')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => handleSort('price_change_percentage_7d_in_currency')}
-                  >
-                    <div className="flex items-center justify-between">
-                      7d % {renderSortIcon('price_change_percentage_7d_in_currency')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => handleSort('price_change_percentage_30d_in_currency')}
-                  >
-                    <div className="flex items-center justify-between">
-                      30d % {renderSortIcon('price_change_percentage_30d_in_currency')}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                    onClick={() => handleSort('price_change_percentage_1y_in_currency')}
-                  >
-                    <div className="flex items-center justify-between">
-                      1y % {renderSortIcon('price_change_percentage_1y_in_currency')}
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {sortedCryptos.map((crypto) => (
-                  <tr key={crypto.id} className="hover:bg-gray-700 transition-colors duration-200">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                      {crypto.market_cap_rank}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-100">
-                      <div className="flex items-center">
-                        <img
-                          src={crypto.image}
-                          alt={crypto.name}
-                          className="w-6 h-6 rounded-full mr-2"
-                          onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/24x24/333/FFF?text=${crypto.symbol.toUpperCase().charAt(0)}`; }}
-                        />
-                        <span className="font-medium">{crypto.name}</span>
-                        <span className="ml-2 text-gray-400 uppercase text-xs">
-                          {crypto.symbol}
-                        </span>
+          <>
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Majors (Ranks 1-10)</h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-700 mb-8">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gray-700 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tl-lg">
+                      #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Coin
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Market Cap
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Volume (24h)
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_24h_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        24h % {renderSortIcon('price_change_percentage_24h_in_currency')}
                       </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
-                      {formatNumber(crypto.current_price)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
-                      {formatNumber(crypto.market_cap)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
-                      {formatNumber(crypto.total_volume)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {formatPercentage(crypto.price_change_percentage_24h_in_currency)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {formatPercentage(crypto.price_change_percentage_7d_in_currency)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {formatPercentage(crypto.price_change_percentage_30d_in_currency)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      {formatPercentage(crypto.price_change_percentage_1y_in_currency)}
-                    </td>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_7d_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        7d % {renderSortIcon('price_change_percentage_7d_in_currency')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_30d_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        30d % {renderSortIcon('price_change_percentage_30d_in_currency')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_1y_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        1y % {renderSortIcon('price_change_percentage_1y_in_currency')}
+                      </div>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                  {majors.map((crypto) => (
+                    <tr key={crypto.id} className="hover:bg-gray-700 transition-colors duration-200">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                        {crypto.market_cap_rank}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-100">
+                        <div className="flex items-center">
+                          <img
+                            src={crypto.image}
+                            alt={crypto.name}
+                            className="w-6 h-6 rounded-full mr-2"
+                            onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/24x24/333/FFF?text=${crypto.symbol.toUpperCase().charAt(0)}`; }}
+                          />
+                          <span className="font-medium">{crypto.name}</span>
+                          <span className="ml-2 text-gray-400 uppercase text-xs">
+                            {crypto.symbol}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                        {formatNumber(crypto.current_price)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                        {formatNumber(crypto.market_cap)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                        {formatNumber(crypto.total_volume)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_24h_in_currency)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_7d_in_currency)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_30d_in_currency)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_1y_in_currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Altcoins Table (Ranks 11-200) */}
+        {!loading && !error && (
+          <>
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Altcoins (Ranks 11-200)</h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-700">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-gray-700 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tl-lg">
+                      #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Coin
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Market Cap
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      Volume (24h)
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_24h_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        24h % {renderSortIcon('price_change_percentage_24h_in_currency')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_7d_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        7d % {renderSortIcon('price_change_percentage_7d_in_currency')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_30d_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        30d % {renderSortIcon('price_change_percentage_30d_in_currency')}
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200"
+                      onClick={() => handleSort('price_change_percentage_1y_in_currency')}
+                    >
+                      <div className="flex items-center justify-between">
+                        1y % {renderSortIcon('price_change_percentage_1y_in_currency')}
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                  {altcoins.map((crypto) => (
+                    <tr key={crypto.id} className="hover:bg-gray-700 transition-colors duration-200">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                        {crypto.market_cap_rank}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-100">
+                        <div className="flex items-center">
+                          <img
+                            src={crypto.image}
+                            alt={crypto.name}
+                            className="w-6 h-6 rounded-full mr-2"
+                            onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/24x24/333/FFF?text=${crypto.symbol.toUpperCase().charAt(0)}`; }}
+                          />
+                          <span className="font-medium">{crypto.name}</span>
+                          <span className="ml-2 text-gray-400 uppercase text-xs">
+                            {crypto.symbol}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                        {formatNumber(crypto.current_price)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                        {formatNumber(crypto.market_cap)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-200">
+                        {formatNumber(crypto.total_volume)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_24h_in_currency)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_7d_in_currency)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_30d_in_currency)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {formatPercentage(crypto.price_change_percentage_1y_in_currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         <p className="text-center text-gray-500 text-xs mt-8">
