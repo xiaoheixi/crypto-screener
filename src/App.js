@@ -122,7 +122,7 @@ const App = () => {
     // Define CSV headers
     const headers = [
       'Rank', 'Coin Name', 'Symbol', 'Price', 'Market Cap', 'Volume (24h)',
-      '24h % Change', '7d % Change', '30d % Change', '1y % Change'
+      'Short', 'Medium', 'Long'
     ];
 
     // Map crypto data to CSV rows (using the combined sortedCryptos)
@@ -139,8 +139,7 @@ const App = () => {
         getNumericValue(crypto.total_volume),
         getNumericValue(crypto.price_change_percentage_24h_in_currency),
         getNumericValue(crypto.price_change_percentage_7d_in_currency),
-        getNumericValue(crypto.price_change_percentage_30d_in_currency),
-        getNumericValue(crypto.price_change_percentage_1y_in_currency)
+        getNumericValue(crypto.price_change_percentage_30d_in_currency)
       ].join(',');
     });
 
@@ -264,7 +263,7 @@ const App = () => {
                       onClick={() => handleSort('price_change_percentage_24h_in_currency')}
                     >
                       <div className="flex items-center justify-between">
-                        24h % {renderSortIcon('price_change_percentage_24h_in_currency')}
+                        Short {renderSortIcon('price_change_percentage_24h_in_currency')}
                       </div>
                     </th>
                     <th
@@ -272,7 +271,7 @@ const App = () => {
                       onClick={() => handleSort('price_change_percentage_7d_in_currency')}
                     >
                       <div className="flex items-center justify-between">
-                        7d % {renderSortIcon('price_change_percentage_7d_in_currency')}
+                        Medium {renderSortIcon('price_change_percentage_7d_in_currency')}
                       </div>
                     </th>
                     <th
@@ -280,15 +279,7 @@ const App = () => {
                       onClick={() => handleSort('price_change_percentage_30d_in_currency')}
                     >
                       <div className="flex items-center justify-between">
-                        30d % {renderSortIcon('price_change_percentage_30d_in_currency')}
-                      </div>
-                    </th>
-                    <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                      onClick={() => handleSort('price_change_percentage_1y_in_currency')}
-                    >
-                      <div className="flex items-center justify-between">
-                        1y % {renderSortIcon('price_change_percentage_1y_in_currency')}
+                        Long {renderSortIcon('price_change_percentage_30d_in_currency')}
                       </div>
                     </th>
                   </tr>
@@ -331,9 +322,6 @@ const App = () => {
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
                         {formatPercentage(crypto.price_change_percentage_30d_in_currency)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        {formatPercentage(crypto.price_change_percentage_1y_in_currency)}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -370,7 +358,7 @@ const App = () => {
                       onClick={() => handleSort('price_change_percentage_24h_in_currency')}
                     >
                       <div className="flex items-center justify-between">
-                        24h % {renderSortIcon('price_change_percentage_24h_in_currency')}
+                        Short {renderSortIcon('price_change_percentage_24h_in_currency')}
                       </div>
                     </th>
                     <th
@@ -378,7 +366,7 @@ const App = () => {
                       onClick={() => handleSort('price_change_percentage_7d_in_currency')}
                     >
                       <div className="flex items-center justify-between">
-                        7d % {renderSortIcon('price_change_percentage_7d_in_currency')}
+                        Medium {renderSortIcon('price_change_percentage_7d_in_currency')}
                       </div>
                     </th>
                     <th
@@ -386,15 +374,7 @@ const App = () => {
                       onClick={() => handleSort('price_change_percentage_30d_in_currency')}
                     >
                       <div className="flex items-center justify-between">
-                        30d % {renderSortIcon('price_change_percentage_30d_in_currency')}
-                      </div>
-                    </th>
-                    <th
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider rounded-tr-lg cursor-pointer hover:bg-gray-600 transition-colors duration-200"
-                      onClick={() => handleSort('price_change_percentage_1y_in_currency')}
-                    >
-                      <div className="flex items-center justify-between">
-                        1y % {renderSortIcon('price_change_percentage_1y_in_currency')}
+                        Long {renderSortIcon('price_change_percentage_30d_in_currency')}
                       </div>
                     </th>
                   </tr>
@@ -436,9 +416,6 @@ const App = () => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
                         {formatPercentage(crypto.price_change_percentage_30d_in_currency)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        {formatPercentage(crypto.price_change_percentage_1y_in_currency)}
                       </td>
                     </tr>
                   ))}
