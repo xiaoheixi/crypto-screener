@@ -9,7 +9,7 @@ const App = () => {
   const [currency, setCurrency] = useState('usd');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [sortColumn, setSortColumn] = useState(null);
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [sortOrder, setSortOrder] = 'desc'; // Removed useState for sortOrder, it's now a constant 'desc'
 
   // Function to fetch cryptocurrency data from CoinGecko API, wrapped in useCallback
   const fetchCryptoData = useCallback(async () => {
@@ -77,12 +77,8 @@ const App = () => {
 
   // Function to handle sorting when a column header is clicked
   const handleSort = (column) => {
-    if (sortColumn === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortOrder('desc');
-    }
+    // This function will set the sortColumn, but sortOrder is now fixed to 'desc'
+    setSortColumn(column);
   };
 
   // Sort the cryptocurrencies based on the current sortColumn and sortOrder
@@ -92,22 +88,19 @@ const App = () => {
     const valueA = a[sortColumn] || 0;
     const valueB = b[sortColumn] || 0;
 
-    if (sortOrder === 'asc') {
-      return valueA - valueB;
-    } else {
-      return valueB - valueA;
-    }
+    // The sort order is always descending
+    return valueB - valueA;
   });
 
-  // Filter for Majors (ranks 1-8) and Altcoins (ranks 9-200) from the sorted list
-  const majors = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 1 && crypto.market_cap_rank <= 8);
-  const altcoins = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 9 && crypto.market_cap_rank <= 200);
+  // Filter for Majors (ranks 1-15) and Altcoins (ranks 16-200) from the sorted list
+  const majors = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 1 && crypto.market_cap_rank <= 15);
+  const altcoins = sortedCryptos.filter(crypto => crypto.market_cap_rank >= 16 && crypto.market_cap_rank <= 200);
 
 
-  // Helper function to render sort icons
+  // Helper function to render sort icons (adjusted to always show desc icon if sorted)
   const renderSortIcon = (column) => {
     if (sortColumn === column) {
-      return sortOrder === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
+      return <ChevronDown size={16} />; // Always show down arrow for descending
     }
     return null;
   };
@@ -235,10 +228,10 @@ const App = () => {
           </div>
           )}
 
-        {/* Majors Table (Ranks 1-8) */}
+        {/* Majors Table (Ranks 1-15) */}
         {!loading && !error && (
           <>
-            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Majors (Ranks 1-8)</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Majors (Ranks 1-15)</h2>
             <div className="overflow-x-auto rounded-lg border border-gray-700 mb-8">
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-700 sticky top-0">
@@ -330,10 +323,10 @@ const App = () => {
           </>
         )}
 
-        {/* Altcoins Table (Ranks 9-200) */}
+        {/* Altcoins Table (Ranks 16-200) */}
         {!loading && !error && (
           <>
-            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Altcoins (Ranks 9-200)</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-blue-300 my-6">Altcoins (Ranks 16-200)</h2>
             <div className="overflow-x-auto rounded-lg border border-gray-700">
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-gray-700 sticky top-0">
